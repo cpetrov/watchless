@@ -192,5 +192,5 @@ if [[ -n "$1" ]]
 		echo "Specified directory doesn't exist." ; exit 1
 	fi
 else
-	echo "Less directory path not given. Usage: watchless [dirpath]" ; exit 1
+	echo "Less directory path not given. Usage: watchless [OPTION] [DIR]" ; exit 1
 fi

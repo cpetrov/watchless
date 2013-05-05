@@ -66,10 +66,11 @@ if [[ -n "$1" ]]
 	then 
 	lessDir=$1
 	childrenPath=
-	parents=
+	parents=()
+	orphans=()
 	if [ -d "$lessDir" ]
 		then
-		all=$(find $lessDir -maxdepth 1 -type f | grep less)
+		all=$(find $lessDir -maxdepth 1 -type f -name '*.less')
 		allArr=( $all )
 		echo "Watching $1 for LESS file modifications."
 		if [ ! -z "$all" ]
@@ -110,7 +111,6 @@ if [[ -n "$1" ]]
 
 						childName=$(sed -r "s/^.{$dotSegments}//;s/^\///" <<< $childName)
 						_childPath=$1 #to sed
-
 						slashes="${_childPath//[^\/]}"
 						slashesCount="${#slashes}"
 						slashesToKeep=$(($slashesCount-$dotSegments))
@@ -127,31 +127,53 @@ if [[ -n "$1" ]]
 						let "childrenCount+=1"
 					done
 				fi
-
 			done
-			childrenPath+=($1)
-			paths=$(echo ${childrenPath[@]} | sed "s/ /\n/g" | sort | uniq)
+			orphans=("${allArr[@]}")
+			count=0
+			for file in ${orphans[@]}
+			do
+				for parent in ${parents[@]}
+				do
+					if [[ "$file" == "$parent" ]]
+					then
+						unset orphans[$count]
+					fi
+				done 
+				for child in ${children[@]}
+				do
+					if [[ "$file" == "$child" ]]
+					then
+						unset orphans[$count]
+					fi
+				done 					
+				count=$(($count+1))
+			done
 
+			childrenPath+=($1)
+			paths=$(echo ${childrenPath[@]} | sed "s/ /\n/g" | sort | uniq )
 			while true 
 			do
 				inotifywait -qe modify --format '%w%f' $paths | while read modifiedFile
 				do  
 				count=0
 				fileIsIncluded=false
+				handleDirStructure()
+				{
+					if $keepDirStructure
+						then
+						cssFile=$(sed 's/\/less\//\/css\//g' <<< $cssFile)
+					fi
+				}
+
 				for child in "${children[@]}"
 				do
 					if [[ "$child" == "$modifiedFile" ]]
 						then
 
 						cssFile=${parents[$count]}
-
-						if $keepDirStructure
-							then
-							cssFile=$(sed 's/\/less\//\/css\//g' <<< $cssFile)
-						fi
-
+						handleDirStructure
 						cssFile=$(sed 's/\.less/\.css/g' <<< $cssFile)
-						echo -e "\nCompiling parent of modified file \n $modifiedFile \nto:\n \e[1;32m"$cssFile"\e[00m"
+						echo -e "\nCompiling parent of modified file \n $modifiedFile \nto:\n \e[1;32m"$cssFile"\e[00m"	
 						lessc --verbose ${parents[$count]} > $cssFile
 						fileIsIncluded=true
 						break
@@ -165,21 +187,24 @@ if [[ -n "$1" ]]
 					do
 						if [[ "$parent" == "$modifiedFile" ]]
 							then
-
-							cssFile=$modifiedFile
-
-							if $keepDirStructure
-								then
-								cssFile=$(sed 's/\/less\//\/css\//g' <<< $cssFile)
-							fi
-
-							cssFile=$(sed 's/\.less/\.css/g' <<< $cssFile)
-							echo -e "\nCompiling modified file \n $modifiedFile \nto:\n \e[1;32m"$cssFile"\e[00m"
+							cssFile=$(sed 's/\.less/\.css/g' <<< $modifiedFile)
+							handleDirStructure
+							echo -e "\nCompiling modified file \n $modifiedFile \nto:\n \e[1;32m"$cssFile"\e[00m"	
 							lessc --verbose $modifiedFile > $cssFile
 							break
 						fi
 					done
-
+					for orphan in "${orphans[@]}"
+					do 
+						if [[ "$orphan" == "$modifiedFile" ]]
+							then
+							cssFile=$(sed 's/\.less/\.css/g' <<< $modifiedFile)
+							handleDirStructure
+							echo -e "\nCompiling modified orphan file \n $modifiedFile \nto:\n \e[1;32m"$cssFile"\e[00m"	
+							lessc --verbose $modifiedFile > $cssFile
+							break
+						fi
+					done
 				fi
 				done
 

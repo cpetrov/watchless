@@ -1,4 +1,4 @@
 watchless
 =========
 
-A simple Bash tool to watch for LESS file changes to compile those files to CSS using inotifywait.
+A simple Bash tool to watch for LESS file changes using inotifywait to compile those files to CSS.

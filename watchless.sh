@@ -43,9 +43,9 @@ echo_version()
 }
 
 keepDirStructure=false
-while getopts ":shv" opt; do
+while getopts ":khv" opt; do
 	case $opt in
-		s)
+		k)
 			keepDirStructure=true
 			;;
 		h)

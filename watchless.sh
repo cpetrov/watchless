@@ -1,5 +1,5 @@
 #!/bin/sh
-ver=0.1.0
+ver=0.1.1
 
 #-----------------------------------------------------------------------#
 #
@@ -66,6 +66,7 @@ if [[ -n "$1" ]]
 	then 
 	lessDir=$1
 	childrenPath=
+	childrenCount=0
 	parents=()
 	orphans=()
 	if [ -d "$lessDir" ]
@@ -85,7 +86,6 @@ if [[ -n "$1" ]]
 					childName[$filesCount]=$(echo $content | sed 's/@import//g;s/ //g;s/"//g;s/;/,/g')
 					IFS=',' read -a childrenNames <<< "${childName[$filesCount]}"
 
-					childrenCount=0
 					for childName in "${childrenNames[@]}"
 					do
 						i=0
